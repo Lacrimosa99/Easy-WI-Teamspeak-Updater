@@ -8,10 +8,9 @@ TS_VERSION="x64"
 TS_MASTER_PATH="/home/"$TS_USER"/"
 TS_DNS_PATH=""$TS_MASTER_PATH"/tsdns"
 
-TMP_PATH="/tmp/teamspeak_update"
-
 ####################
 
+TMP_PATH="/tmp/teamspeak_update"
 BACKUP_FILES=("licensekey.dat" "query_ip_blacklist.txt" "query_ip_whitelist.txt" "serverkey.dat" "ts3db_mariadb.ini" "ts3db_mysql.ini" "ts3server.ini" "ts3server.sqlitedb" "ts3server_startscript.sh" "tsdns_settings.ini")
 
 TS_VERSION_CHECK() {
@@ -65,6 +64,10 @@ BACKUP() {
 	if [ -d "$TS_MASTER_PATH"/Backup ]; then
 		cp "$TS_MASTER_PATH"/Backup "$TMP_PATH"
 	fi
+
+	if [ -d "$TS_MASTER_PATH"/logs ]; then
+		cp "$TS_MASTER_PATH"/logs "$TMP_PATH"
+	fi
 }
 
 DOWNLOAD() {
@@ -90,6 +93,10 @@ RESTORE() {
 
 	if [ -d "$TMP_PATH"/Backup ]; then
 		cp "$TMP_PATH"/Backup "$TS_MASTER_PATH"
+	fi
+
+	if [ -d "$TMP_PATH"/logs ]; then
+		cp "$TMP_PATH"/logs "$TS_MASTER_PATH"
 	fi
 }
 
