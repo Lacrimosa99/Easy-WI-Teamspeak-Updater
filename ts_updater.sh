@@ -9,7 +9,7 @@ TS_MASTER_PATH="/home/$TS_USER"
 
 TS_DNS_PATH=""$TS_MASTER_PATH"/tsdns"
 TMP_PATH="/tmp/teamspeak_old"
-BACKUP_FILES=("licensekey.dat" "query_ip_blacklist.txt" "query_ip_whitelist.txt" "serverkey.dat" "ts3db_mariadb.ini" "ts3db_mysql.ini" "ts3server.ini" "ts3server.sqlitedb" "ts3server_startscript.sh" "tsdns_settings.ini" "tsdns_startscript.sh")
+BACKUP_FILES=("licensekey.dat" "serverkey.dat" "ts3server.sqlitedb" "query_ip_blacklist.txt" "query_ip_whitelist.txt" "ts3db_mariadb.ini" "ts3db_mysql.ini" "ts3server.ini" "tsdns_settings.ini" "ts3server_startscript.sh" "tsdns_startscript.sh")
 BACKUP_DIR=("backup" "Backup" "logs" "files" ".ssh" ".config")
 MACHINE=`uname -m`
 
