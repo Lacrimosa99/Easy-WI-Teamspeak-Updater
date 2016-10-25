@@ -3,19 +3,15 @@
 TS_USER=""
 TS_GROUP=""
 
-TS_VERSION="x64"
-
-TS_MASTER_PATH="/home/"$TS_USER"/"
-TS_DNS_PATH=""$TS_MASTER_PATH"/tsdns"
+TS_MASTER_PATH="/home/$TS_USER"
 
 ####################
 
-TMP_PATH="/tmp/teamspeak_update"
-BACKUP_FILES=("licensekey.dat" "query_ip_blacklist.txt" "query_ip_whitelist.txt" "serverkey.dat" "ts3db_mariadb.ini" "ts3db_mysql.ini" "ts3server.ini" "ts3server.sqlitedb" "ts3server_startscript.sh" "tsdns_settings.ini")
-
-TS_VERSION_CHECK() {
-
-}
+TS_DNS_PATH=""$TS_MASTER_PATH"/tsdns"
+TMP_PATH="/tmp/teamspeak_old"
+BACKUP_FILES=("licensekey.dat" "query_ip_blacklist.txt" "query_ip_whitelist.txt" "serverkey.dat" "ts3db_mariadb.ini" "ts3db_mysql.ini" "ts3server.ini" "ts3server.sqlitedb" "ts3server_startscript.sh" "tsdns_settings.ini" "tsdns_startscript.sh")
+BACKUP_DIR=("backup" "Backup" "logs" "files" ".ssh" ".config")
+MACHINE=`uname -m`
 
 USER_CHECK() {
 	echo
@@ -33,84 +29,149 @@ USER_CHECK() {
 }
 
 SERVER_START_MINIMAL() {
-	su "$TS_USER" -c "./ts3server_minimal_runscript.sh"
+	echo "Start TS3 Server with minimal script to update database..."
+	echo "Please do not cancel!"
+
+	su "$TS_USER" -c ""$TS_MASTER_PATH"/ts3server_minimal_runscript.sh > "$TS_MASTER_PATH"/logs/ts3server_minimal_start_$(date +%d-%m-%Y).log" &
+	PID=$!
+
+	sleep 90
+	kill -15 $PID 2>&1 >/dev/null
+	sleep 10
+	echo
 }
 
 SERVER_START() {
-	su "$TS_USER" -c "./ts3server_startscript.sh start"
-	su "$TS_USER" -c "./tsdns/tsdns_startscript.sh start"
+	echo "Start TS3 Server..."
+
+	su "$TS_USER" -c ""$TS_MASTER_PATH"/ts3server_startscript.sh start" 2>&1 >/dev/null
+	sleep 2
+	if [ -f "$TS_DNS_PATH"/tsdns_startscript.sh ]; then
+		su "$TS_USER" -c ""$TS_DNS_PATH"/tsdns_startscript.sh start" 2>&1 >/dev/null
+	fi
+
+	sleep 2
+	echo "Done"
+	echo
 }
 
 SERVER_STOP() {
-	su "$TS_USER" -c "./ts3server_startscript.sh stop"
-	su "$TS_USER" -c "./tsdns/tsdns_startscript.sh stop""
+	echo "Stop Server for Update..."
+
+	su "$TS_USER" -c ""$TS_MASTER_PATH"/ts3server_startscript.sh stop" 2>&1 >/dev/null
+	if [ -f "$TS_DNS_PATH"/tsdns_startscript.sh ]; then
+		su "$TS_USER" -c ""$TS_DNS_PATH"/tsdns_startscript.sh stop" 2>&1 >/dev/null
+	fi
+
+	sleep 2
+	echo "Done"
+	echo
+	sleep 3
 }
 
 BACKUP() {
-	for tmp_file in ${BACKUP_FILES[@]}; do
-		if [ -f "$TS_MASTER_PATH"/"$tmp_file" ]; then
-			cp "$TS_MASTER_PATH"/"$tmp_file" "$TMP_PATH"
-		elif [ -f "$TS_DNS_PATH"/"$tmp_file" ]; then
-			cp "$TS_DNS_PATH"/"$tmp_file" "$TMP_PATH"/tsdns
-		else
-			echo "File not found."
+	echo "Make Backup..."
+
+	if [ ! -d "$TMP_PATH" ]; then
+		mkdir "$TMP_PATH"
+	else
+		rm -rf "$TMP_PATH"
+		mkdir "$TMP_PATH"
+	fi
+
+	for tmp_dir in ${BACKUP_DIR[@]}; do
+		if [ -d "$TS_MASTER_PATH"/"$tmp_dir" ]; then
+			cp "$TS_MASTER_PATH"/"$tmp_dir" -R "$TMP_PATH" 2>&1 >/dev/null
 		fi
 	done
 
-	if [ -d "$TS_MASTER_PATH"/backup ]; then
-		cp "$TS_MASTER_PATH"/backup "$TMP_PATH"
+	if [ ! -d "$TMP_PATH"/tsdns ]; then
+		mkdir "$TMP_PATH"/tsdns
 	fi
 
-	if [ -d "$TS_MASTER_PATH"/Backup ]; then
-		cp "$TS_MASTER_PATH"/Backup "$TMP_PATH"
-	fi
+	for tmp_file in ${BACKUP_FILES[@]}; do
+		if [ -f "$TS_MASTER_PATH"/"$tmp_file" ]; then
+			cp "$TS_MASTER_PATH"/"$tmp_file" -R "$TMP_PATH"/ 2>&1 >/dev/null
+		elif [ -f "$TS_DNS_PATH"/"$tmp_file" ]; then
+			cp "$TS_DNS_PATH"/"$tmp_file" -R "$TMP_PATH"/tsdns/ 2>&1 >/dev/null
+		fi
+	done
 
-	if [ -d "$TS_MASTER_PATH"/logs ]; then
-		cp "$TS_MASTER_PATH"/logs "$TMP_PATH"
-	fi
+	sleep 2
+	echo "Done"
+	echo
+	sleep 3
 }
 
 DOWNLOAD() {
+	echo "Downloading TS3 Server Files..."
 
+	if [ "$MACHINE" == "x86_64" ]; then
+		ARCH="amd64"
+	elif [ "$MACHINE" == "i386" ] || [ "$MACHINE" == "i686" ]; then
+		ARCH="x86"
+	else
+		echo "$MACHINE is not supported!"
+	fi
+
+	VERSION="$(curl -s http://teamspeak.com/downloads#server | grep teamspeak3-server_linux_$ARCH | head -n1 | grep -o [0-9].[0-9].[0-9][0-9].[0-9] | head -n1)"
+	DOWNLOAD_URL="http://dl.4players.de/ts/releases/$VERSION/teamspeak3-server_linux_$ARCH-$VERSION.tar.bz2"
+
+	wget --timeout=60 -P /tmp/ "$DOWNLOAD_URL"
+	cd /tmp
+	tar xfj /tmp/teamspeak3-server_linux_"$ARCH"-"$VERSION".tar.bz2
+
+	rm -rf "$TS_MASTER_PATH"/*
+
+	mv /tmp/teamspeak3-server_linux_"$ARCH"/* "$TS_MASTER_PATH"
+	echo "$VERSION" >> "$TS_MASTER_PATH"/version
+	echo
+	sleep 3
 }
 
 RESTORE() {
-	for tmp_file in ${BACKUP_FILES[@]}; do
-		if [ -f "$TMP_PATH"/"$tmp_file" ]; then
-			rm -rf "$TS_MASTER_PATH"/"$tmp_file"
-			cp "$TMP_PATH"/"$tmp_file" "$TS_MASTER_PATH"
-		elif [ -f "$TMP_PATH"/tsdns/"$tmp_file" ]; then
-			rm -rf "$TS_DNS_PATH"/"$tmp_file"
-			cp "$TMP_PATH"/tsdns/"$tmp_file" "$TS_DNS_PATH"
-		else
-			echo "File not found."
+	echo "Restore TS3 Server Files..."
+
+	for tmp_dir in ${BACKUP_DIR[@]}; do
+		if [ -d "$TMP_PATH"/"$tmp_dir" ]; then
+			cp "$TMP_PATH"/"$tmp_dir" -R "$TS_MASTER_PATH"/
 		fi
 	done
 
-	if [ -d "$TMP_PATH"/backup ]; then
-		cp "$TMP_PATH"/backup "$TS_MASTER_PATH"
+	if [ ! -d "$TS_MASTER_PATH"/logs ]; then
+		mkdir "$TS_MASTER_PATH"/logs
 	fi
 
-	if [ -d "$TMP_PATH"/Backup ]; then
-		cp "$TMP_PATH"/Backup "$TS_MASTER_PATH"
-	fi
+	for tmp_file in ${BACKUP_FILES[@]}; do
+		if [ -f "$TMP_PATH"/"$tmp_file" ]; then
+			rm -rf "$TS_MASTER_PATH"/"$tmp_file"
+			mv "$TMP_PATH"/"$tmp_file" "$TS_MASTER_PATH"/
+		elif [ -f "$TMP_PATH"/tsdns/"$tmp_file" ]; then
+			rm -rf "$TS_DNS_PATH"/"$tmp_file"
+			mv "$TMP_PATH"/tsdns/"$tmp_file" "$TS_DNS_PATH"/
+		fi
+	done
 
-	if [ -d "$TMP_PATH"/logs ]; then
-		cp "$TMP_PATH"/logs "$TS_MASTER_PATH"
-	fi
+	chown -cR "$TS_USER":"$TS_GROUP" "$TS_MASTER_PATH" 2>&1 >/dev/null
+
+	rm -rf /tmp/teamspeak3-server_linux_"$ARCH"-"$VERSION".tar.bz2
+	rm -rf /tmp/teamspeak3-server_linux_"$ARCH"
+	rm -rf "$TMP_PATH"
+
+	sleep 2
+	echo "Done"
+	echo
+	sleep 3
 }
 
 RUN() {
 	USER_CHECK
-	TS_VERSION_CHECK
 	SERVER_STOP
 	BACKUP
 	DOWNLOAD
 	RESTORE
 	SERVER_START_MINIMAL
-	sleep 15
-#	SERVER_START
-	exit 0
+	SERVER_START
 }
 
 RUN
