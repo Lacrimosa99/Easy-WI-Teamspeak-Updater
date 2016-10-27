@@ -53,7 +53,12 @@ SERVER_START_MINIMAL() {
 	yellowMessage "Please do not cancel!"
 	echo
 
-	su "$TS_USER" -c ""$TS_MASTER_PATH"/ts3server_minimal_runscript.sh 2>&1 | tee "$TS_MASTER_PATH"/logs/ts3server_minimal_start_$(date +%d-%m-%Y).log" &
+	if [ -f "$TS_MASTER_PATH"/ts3server.ini ]; then
+		su "$TS_USER" -c "ln -s "$TS_MASTER_PATH"/redist/libmariadb.so.2 "$TS_MASTER_PATH"/libmariadb.so.2"
+		su "$TS_USER" -c ""$TS_MASTER_PATH"/ts3server_minimal_runscript.sh inifile=ts3server.ini 2>&1 | tee "$TS_MASTER_PATH"/logs/ts3server_minimal_start_$(date +%d-%m-%Y).log" &
+	else
+		su "$TS_USER" -c ""$TS_MASTER_PATH"/ts3server_minimal_runscript.sh 2>&1 | tee "$TS_MASTER_PATH"/logs/ts3server_minimal_start_$(date +%d-%m-%Y).log" &
+	fi
 	PID=$!
 
 	sleep 90
