@@ -20,7 +20,7 @@ VERSION_CHECK() {
 
 	if [ ! "$LATEST_VERSION" = "" ]; then
 		if [ "`printf "${LATEST_VERSION}\n${CURRENT_VERSION}" | sort -V | tail -n 1`" != "$CURRENT_VERSION" ]; then
-			redMessage "You are using the old ts3 updater script version ${CURRENT_MANAGER_VERSION}."
+			redMessage "You are using the old ts3 updater script version ${CURRENT_VERSION}."
 			redMessage "Please upgrade to version ${LATEST_VERSION} and retry."
 			FINISHED
 		else
