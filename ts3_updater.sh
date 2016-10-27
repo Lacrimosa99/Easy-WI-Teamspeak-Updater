@@ -32,7 +32,7 @@ SERVER_START_MINIMAL() {
 	echo "Start TS3 Server with minimal script to update database..."
 	echo "Please do not cancel!"
 
-	su "$TS_USER" -c ""$TS_MASTER_PATH"/ts3server_minimal_runscript.sh > "$TS_MASTER_PATH"/logs/ts3server_minimal_start_$(date +%d-%m-%Y).log" &
+	su "$TS_USER" -c ""$TS_MASTER_PATH"/ts3server_minimal_runscript.sh 2>&1 | tee "$TS_MASTER_PATH"/logs/ts3server_minimal_start_$(date +%d-%m-%Y).log" &
 	PID=$!
 
 	sleep 90
