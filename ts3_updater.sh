@@ -15,11 +15,12 @@ BACKUP_DIR=("backup" "Backup" "logs" "files" ".ssh" ".config")
 MACHINE=`uname -m`
 
 VERSION_CHECK() {
-	yellowMessage "Checking for the latest installer and updater Script"
+	yellowMessage "Checking for the latest updater Script"
 	LATEST_VERSION=`wget -q --timeout=60 -O - https://api.github.com/repos/Lacrimosa99/Easy-WI-Teamspeak-Updater/releases/latest | grep -Po '(?<="tag_name": ")([0-9]\.[0-9])'`
 
 	if [ ! "$LATEST_VERSION" = "" ]; then
 		if [ "`printf "${LATEST_VERSION}\n${CURRENT_VERSION}" | sort -V | tail -n 1`" != "$CURRENT_VERSION" ]; then
+			echo
 			redMessage "You are using the old ts3 updater script version ${CURRENT_VERSION}."
 			redMessage "Please upgrade to version ${LATEST_VERSION} and retry."
 			FINISHED
