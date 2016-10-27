@@ -7,7 +7,7 @@ TS_MASTER_PATH="/home/$TS_USER"
 
 ####################
 
-CURRENT_VERSION="1.1"
+CURRENT_VERSION="1.2"
 TS_DNS_PATH=""$TS_MASTER_PATH"/tsdns"
 TMP_PATH="/tmp/teamspeak_old"
 BACKUP_FILES=("licensekey.dat" "serverkey.dat" "ts3server.sqlitedb" "query_ip_blacklist.txt" "query_ip_whitelist.txt" "ts3db_mariadb.ini" "ts3db_mysql.ini" "ts3server.ini" "tsdns_settings.ini" "ts3server_startscript.sh" "tsdns_startscript.sh")
@@ -26,6 +26,7 @@ VERSION_CHECK() {
 		else
 			greenMessage "You are using the up to date version ${CURRENT_VERSION}"
 			sleep 3
+			USER_CHECK
 		fi
 	else
 		redMessage "Could not detect last version!"
@@ -41,6 +42,8 @@ USER_CHECK() {
 			redMessage "User $TS_USER not found or wrong shell rights!"
 			redMessage "Please check the TS_USER inside this Script or the user shell rights."
 			FINISHED
+		else
+			SERVER_STOP
 		fi
 	else
 		redMessage 'Variable "TS_USER" are empty!'
@@ -65,6 +68,7 @@ SERVER_START_MINIMAL() {
 	kill -15 $PID 2>&1 >/dev/null
 	sleep 10
 	echo
+	SERVER_START
 }
 
 SERVER_START() {
@@ -92,6 +96,7 @@ SERVER_STOP() {
 	greenMessage "Done"
 	echo
 	sleep 3
+	BACKUP
 }
 
 BACKUP() {
@@ -126,6 +131,7 @@ BACKUP() {
 	greenMessage "Done"
 	echo
 	sleep 3
+	DOWNLOAD
 }
 
 DOWNLOAD() {
@@ -155,6 +161,7 @@ DOWNLOAD() {
 		echo "$VERSION" >> "$TS_MASTER_PATH"/version
 		echo
 		sleep 3
+		RESTORE
 	else
 		redMessage "Download the last TS3 Files failed!"
 		FINISHED
@@ -194,6 +201,7 @@ RESTORE() {
 	greenMessage "Done"
 	echo
 	sleep 3
+	SERVER_START_MINIMAL
 }
 
 HEADER() {
@@ -241,13 +249,6 @@ RUN() {
 	echo
 	HEADER
 	VERSION_CHECK
-	USER_CHECK
-	SERVER_STOP
-	BACKUP
-	DOWNLOAD
-	RESTORE
-	SERVER_START_MINIMAL
-	SERVER_START
 	FINISHED
 }
 
