@@ -7,11 +7,31 @@ TS_MASTER_PATH="/home/$TS_USER"
 
 ####################
 
+CURRENT_VERSION="1.1"
 TS_DNS_PATH=""$TS_MASTER_PATH"/tsdns"
 TMP_PATH="/tmp/teamspeak_old"
 BACKUP_FILES=("licensekey.dat" "serverkey.dat" "ts3server.sqlitedb" "query_ip_blacklist.txt" "query_ip_whitelist.txt" "ts3db_mariadb.ini" "ts3db_mysql.ini" "ts3server.ini" "tsdns_settings.ini" "ts3server_startscript.sh" "tsdns_startscript.sh")
 BACKUP_DIR=("backup" "Backup" "logs" "files" ".ssh" ".config")
 MACHINE=`uname -m`
+
+VERSION_CHECK() {
+	yellowMessage "Checking for the latest installer and updater Script"
+	LATEST_VERSION=`wget -q --timeout=60 -O - https://api.github.com/repos/Lacrimosa99/Easy-WI-Teamspeak-Updater/releases/latest | grep -Po '(?<="tag_name": ")([0-9]\.[0-9])'`
+
+	if [ ! "$LATEST_VERSION" = "" ]; then
+		if [ "`printf "${LATEST_VERSION}\n${CURRENT_VERSION}" | sort -V | tail -n 1`" != "$CURRENT_VERSION" ]; then
+			redMessage "You are using the old ts3 updater script version ${CURRENT_MANAGER_VERSION}."
+			redMessage "Please upgrade to version ${LATEST_VERSION} and retry."
+			FINISHED
+		else
+			greenMessage "You are using the up to date version ${CURRENT_VERSION}"
+			sleep 3
+		fi
+	else
+		redMessage "Could not detect last version!"
+		FINISHED
+	fi
+}
 
 USER_CHECK() {
 	echo
@@ -20,17 +40,18 @@ USER_CHECK() {
 		if [ ! "$USER_CHECK" == "/home/$TS_USER:/bin/bash" ] && [ ! "$USER_CHECK" == "/home/$TS_USER/:/bin/bash" ]; then
 			redMessage "User $TS_USER not found or wrong shell rights!"
 			redMessage "Please check the TS_USER inside this Script or the user shell rights."
-			exit 0
+			FINISHED
 		fi
 	else
-		echo 'Variable "TS_USER" are empty!'
-		exit 0
+		redMessage 'Variable "TS_USER" are empty!'
+		FINISHED
 	fi
 }
 
 SERVER_START_MINIMAL() {
-	echo "Start TS3 Server with minimal script to update database..."
-	echo "Please do not cancel!"
+	yellowMessage "Start TS3 Server with minimal script to update database..."
+	yellowMessage "Please do not cancel!"
+	echo
 
 	su "$TS_USER" -c ""$TS_MASTER_PATH"/ts3server_minimal_runscript.sh 2>&1 | tee "$TS_MASTER_PATH"/logs/ts3server_minimal_start_$(date +%d-%m-%Y).log" &
 	PID=$!
@@ -42,7 +63,7 @@ SERVER_START_MINIMAL() {
 }
 
 SERVER_START() {
-	echo "Start TS3 Server..."
+	yellowMessage "Start TS3 Server..."
 
 	su "$TS_USER" -c ""$TS_MASTER_PATH"/ts3server_startscript.sh start" 2>&1 >/dev/null
 	sleep 2
@@ -51,12 +72,11 @@ SERVER_START() {
 	fi
 
 	sleep 2
-	echo "Done"
-	echo
+	greenMessage "Done"
 }
 
 SERVER_STOP() {
-	echo "Stop Server for Update..."
+	yellowMessage "Stop Server for Update..."
 
 	su "$TS_USER" -c ""$TS_MASTER_PATH"/ts3server_startscript.sh stop" 2>&1 >/dev/null
 	if [ -f "$TS_DNS_PATH"/tsdns_startscript.sh ]; then
@@ -64,13 +84,13 @@ SERVER_STOP() {
 	fi
 
 	sleep 2
-	echo "Done"
+	greenMessage "Done"
 	echo
 	sleep 3
 }
 
 BACKUP() {
-	echo "Make Backup..."
+	yellowMessage "Make Backup..."
 
 	if [ ! -d "$TMP_PATH" ]; then
 		mkdir "$TMP_PATH"
@@ -98,13 +118,14 @@ BACKUP() {
 	done
 
 	sleep 2
-	echo "Done"
+	greenMessage "Done"
 	echo
 	sleep 3
 }
 
 DOWNLOAD() {
-	echo "Downloading TS3 Server Files..."
+	yellowMessage "Downloading TS3 Server Files..."
+	echo
 
 	if [ "$MACHINE" == "x86_64" ]; then
 		ARCH="amd64"
@@ -118,19 +139,25 @@ DOWNLOAD() {
 	DOWNLOAD_URL="http://dl.4players.de/ts/releases/$VERSION/teamspeak3-server_linux_$ARCH-$VERSION.tar.bz2"
 
 	wget --timeout=60 -P /tmp/ "$DOWNLOAD_URL"
-	cd /tmp
-	tar xfj /tmp/teamspeak3-server_linux_"$ARCH"-"$VERSION".tar.bz2
 
-	rm -rf "$TS_MASTER_PATH"/*
+	if [ -f /tmp/teamspeak3-server_linux_"$ARCH"-"$VERSION".tar.bz2 ]; then
+		cd /tmp
+		tar xfj /tmp/teamspeak3-server_linux_"$ARCH"-"$VERSION".tar.bz2
 
-	mv /tmp/teamspeak3-server_linux_"$ARCH"/* "$TS_MASTER_PATH"
-	echo "$VERSION" >> "$TS_MASTER_PATH"/version
-	echo
-	sleep 3
+		rm -rf "$TS_MASTER_PATH"/*
+
+		mv /tmp/teamspeak3-server_linux_"$ARCH"/* "$TS_MASTER_PATH"
+		echo "$VERSION" >> "$TS_MASTER_PATH"/version
+		echo
+		sleep 3
+	else
+		redMessage "Download the last TS3 Files failed!"
+		FINISHED
+	fi
 }
 
 RESTORE() {
-	echo "Restore TS3 Server Files..."
+	yellowMessage "Restore TS3 Server Files..."
 
 	for tmp_dir in ${BACKUP_DIR[@]}; do
 		if [ -d "$TMP_PATH"/"$tmp_dir" ]; then
@@ -159,12 +186,56 @@ RESTORE() {
 	rm -rf "$TMP_PATH"
 
 	sleep 2
-	echo "Done"
+	greenMessage "Done"
 	echo
 	sleep 3
 }
 
+HEADER() {
+	echo
+	cyanMessage "###################################################"
+	cyanMessage "####         EASY-WI - www.Easy-WI.com         ####"
+	cyanMessage "####            Teamspeak 3 Updater            ####"
+	cyanMessage "####                Version: $CURRENT_VERSION               ####"
+	cyanMessage "####                    by                     ####"
+	cyanMessage "####                Lacrimosa99                ####"
+	cyanMessage "####         www.Devil-Hunter-Clan.de          ####"
+	cyanMessage "####      www.Devil-Hunter-Multigaming.de      ####"
+	cyanMessage "###################################################"
+	echo
+}
+
+FINISHED() {
+	sleep 2
+	echo
+	echo
+	yellowMessage "Thanks for using this script and have a nice Day."
+	HEADER
+	echo
+	exit 0
+}
+
+yellowMessage() {
+	echo -e "\\033[33;1m${@}\033[0m"
+}
+
+redMessage() {
+	echo -e "\\033[31;1m${@}\033[0m"
+}
+
+greenMessage() {
+	echo -e "\\033[32;1m${@}\033[0m"
+}
+
+cyanMessage() {
+	echo -e "\\033[36;1m${@}\033[0m"
+}
+
 RUN() {
+	clear
+	echo
+	HEADER
+	VERSION_CHECK
 	USER_CHECK
 	SERVER_STOP
 	BACKUP
@@ -172,6 +243,7 @@ RUN() {
 	RESTORE
 	SERVER_START_MINIMAL
 	SERVER_START
+	FINISHED
 }
 
 RUN
