@@ -7,7 +7,7 @@ TS_MASTER_PATH="/home/$TS_USER"
 
 ####################
 
-CURRENT_VERSION="1.2"
+CURRENT_VERSION="1.3"
 TS_DNS_PATH=""$TS_MASTER_PATH"/tsdns"
 TMP_PATH="/tmp/teamspeak_old"
 BACKUP_FILES=("licensekey.dat" "serverkey.dat" "ts3server.sqlitedb" "query_ip_blacklist.txt" "query_ip_whitelist.txt" "ts3db_mariadb.ini" "ts3db_mysql.ini" "ts3server.ini" "tsdns_settings.ini" "ts3server_startscript.sh" "tsdns_startscript.sh" ".bash_history" ".bash_logout" ".bashrc" ".profile")
@@ -38,8 +38,8 @@ VERSION_CHECK() {
 USER_CHECK() {
 	echo
 	if [ ! "$TS_USER" = "" ]; then
-		USER_CHECK=$(cut -d: -f6,7 /etc/passwd | grep "$TS_USER")
-		if [ ! "$USER_CHECK" == "/home/$TS_USER:/bin/bash" ] && [ ! "$USER_CHECK" == "/home/$TS_USER/:/bin/bash" ]; then
+		USER_CHECK=$(cut -d: -f6,7 /etc/passwd | grep "$TS_USER" | head -n1)
+		if ([ ! "$USER_CHECK" == "/home/$TS_USER:/bin/bash" -a ! "$USER_CHECK" == "/home/$TS_USER/:/bin/bash" ]); then
 			redMessage "User $TS_USER not found or wrong shell rights!"
 			redMessage "Please check the TS_USER inside this Script or the user shell rights."
 			FINISHED
