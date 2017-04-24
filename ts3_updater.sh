@@ -75,10 +75,14 @@ SERVER_START_MINIMAL() {
 SERVER_START() {
 	yellowMessage "Start TS3 Server..."
 
-	su "$TS_USER" -c ""$TS_MASTER_PATH"/ts3server_startscript.sh start" 2>&1 >/dev/null
-	sleep 2
-	if [ -f "$TS_DNS_PATH"/tsdns_startscript.sh ]; then
-		su "$TS_USER" -c ""$TS_DNS_PATH"/tsdns_startscript.sh start" 2>&1 >/dev/null
+	if [ -f "$TS_MASTER_PATH"/ts3server.pid ]; then
+		su "$TS_USER" -c ""$TS_MASTER_PATH"/ts3server_startscript.sh restart" 2>&1 >/dev/null
+	else
+		su "$TS_USER" -c ""$TS_MASTER_PATH"/ts3server_startscript.sh start" 2>&1 >/dev/null
+		sleep 2
+		if [ -f "$TS_DNS_PATH"/tsdns_startscript.sh ]; then
+			su "$TS_USER" -c ""$TS_DNS_PATH"/tsdns_startscript.sh start" 2>&1 >/dev/null
+		fi
 	fi
 
 	sleep 2
