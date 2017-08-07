@@ -14,7 +14,7 @@ TS_MASTER_PATH="/home/$TS_USER"
 
 ####################
 
-CURRENT_SCRIPT_VERSION="1.3"
+CURRENT_SCRIPT_VERSION="1.4"
 TS_DNS_PATH=""$TS_MASTER_PATH"/tsdns"
 TMP_PATH="/tmp/teamspeak_old"
 BACKUP_FILES=("licensekey.dat" "serverkey.dat" "ts3server.sqlitedb" "query_ip_blacklist.txt" "query_ip_whitelist.txt" "ts3db_mariadb.ini" "ts3db_mysql.ini" "ts3server.ini" "tsdns_settings.ini" "ts3server_startscript.sh" "tsdns_startscript.sh" ".bash_history" ".bash_logout" ".bashrc" ".profile")
@@ -95,7 +95,7 @@ SERVER_START_MINIMAL() {
 	CHECK_MARIADB=$(if [ -f "$TS_MASTER_PATH"/ts3db_mariadb.ini ]; then cat "$TS_MASTER_PATH"/ts3db_mariadb.ini | grep "username="; fi)
 	CHECK_MSQL=$(if [ -f "$TS_MASTER_PATH"/ts3db_mysql.ini ]; then cat "$TS_MASTER_PATH"/ts3db_mysql.ini | grep "username="; fi)
 
-	if [ ! "$CHECK_MARIADB" = "" -o ! "$CHECK_MSQL" = "" ]; then
+	if [ "$CHECK_MARIADB" != "" -o "$CHECK_MSQL" != "" ]; then
 		su "$TS_USER" -c "ln -s "$TS_MASTER_PATH"/redist/libmariadb.so.2 "$TS_MASTER_PATH"/libmariadb.so.2"
 		su "$TS_USER" -c "$TS_MASTER_PATH/ts3server_minimal_runscript.sh inifile=ts3server.ini 2>&1 | tee $TS_MASTER_PATH/logs/ts3server_minimal_start_$(date +%d-%m-%Y).log" &
 	else
