@@ -25,7 +25,7 @@ VERSION_CHECK() {
 	yellowMessage "Checking for the latest Updater Script"
 	LATEST_SCRIPT_VERSION=`wget -q --timeout=60 -O - https://api.github.com/repos/Lacrimosa99/Easy-WI-Teamspeak-Updater/releases/latest | grep -Po '(?<="tag_name": ")([0-9]\.[0-9])'`
 
-	if [ ! "$LATEST_SCRIPT_VERSION" = "" ]; then
+	if [ "$LATEST_SCRIPT_VERSION" != "" ]; then
 		if [ "`printf "${LATEST_SCRIPT_VERSION}\n${CURRENT_SCRIPT_VERSION}" | sort -V | tail -n 1`" != "$CURRENT_SCRIPT_VERSION" ]; then
 			echo
 			redMessage "You are using a old TS3 Updater Script Version ${CURRENT_SCRIPT_VERSION}."
@@ -52,10 +52,10 @@ VERSION_CHECK() {
 		echo "$MACHINE is not supported!"
 	fi
 
-	LASTEST_TS3_VERSION=$(curl -s http://teamspeak.com/downloads#server | grep teamspeak3-server_linux_$ARCH | head -n1 | grep -o [0-9].[0-9].[0-9][0-9].[0-9] | head -n1)
+	LASTEST_TS3_VERSION=$(curl -s https://teamspeak.com/en/downloads#server | grep teamspeak3-server_linux_$ARCH | head -n1 | grep -o [0-9].[0-9].[0-9][0-9].[0-9] | head -n1)
 	LOCAL_TS3_VERSION=$(if [ -f "$TS_MASTER_PATH"/version ]; then cat "$TS_MASTER_PATH"/version; fi)
-	if [ ! "$LASTEST_TS3_VERSION" = "" ]; then
-		if [ ! "$LOCAL_TS3_VERSION" = "$LASTEST_TS3_VERSION" ]; then
+	if [ "$LASTEST_TS3_VERSION" != "" ]; then
+		if [ "$LOCAL_TS3_VERSION" != "$LASTEST_TS3_VERSION" ]; then
 			redMessage "Your TS3 Server Version is deprecated."
 			redMessage "Start Update Process"
 			sleep 2
@@ -72,9 +72,9 @@ VERSION_CHECK() {
 
 USER_CHECK() {
 	echo
-	if [ ! "$TS_USER" = "" ]; then
+	if [ "$TS_USER" != "" ]; then
 		USER_CHECK=$(cut -d: -f6,7 /etc/passwd | grep "$TS_USER" | head -n1)
-		if ([ ! "$USER_CHECK" == "/home/$TS_USER:/bin/bash" -a ! "$USER_CHECK" == "/home/$TS_USER/:/bin/bash" ]); then
+		if ([ "$USER_CHECK" != "/home/$TS_USER:/bin/bash" -a "$USER_CHECK" != "/home/$TS_USER/:/bin/bash" ]); then
 			redMessage "User $TS_USER not found or wrong shell rights!"
 			redMessage "Please check the TS_USER inside this Script or the user shell rights."
 			FINISHED
@@ -107,7 +107,7 @@ SERVER_START_MINIMAL() {
 	kill -15 $TS3_PID
 	sleep 10
 	greenMessage "Done"
-	sleep 10
+	sleep 20
 	echo
 	SERVER_START
 }
@@ -133,11 +133,11 @@ SERVER_STOP() {
 		su "$TS_USER" -c ""$TS_DNS_PATH"/tsdns_startscript.sh stop" 2>&1 >/dev/null
 	fi
 	sleep 5
-	if [ ! $(ps -ef | grep ts3server | grep -v grep | awk '{print $2}' | sort | tail -n1) = "" ]; then
+	if [ $(ps -ef | grep ts3server | grep -v grep | awk '{print $2}' | sort | tail -n1) != "" ]; then
 		TS3_PID=$(ps -ef | grep ts3server | grep -v grep | awk '{print $2}' | sort | tail -n1)
 		kill -15 $TS3_PID
 	fi
-	if [ ! $(ps -ef | grep tsdnsserver | grep -v grep | awk '{print $2}' | sort | tail -n1) = "" ]; then
+	if [ $(ps -ef | grep tsdnsserver | grep -v grep | awk '{print $2}' | sort | tail -n1) != "" ]; then
 		TS3_DNS_PID=$(ps -ef | grep tsdnsserver | grep -v grep | awk '{print $2}' | sort | tail -n1)
 		kill -15 $TS3_DNS_PID
 	fi
