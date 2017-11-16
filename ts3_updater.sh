@@ -12,12 +12,14 @@ TS_GROUP=""
 # Teamspeak3 Path
 TS_MASTER_PATH="/home/$TS_USER"
 
+# Backup Path
+BACKUP_PATH=""
+
 ####################
 
 CURRENT_SCRIPT_VERSION="1.4"
-TS_DNS_PATH=""$TS_MASTER_PATH"/tsdns"
 TMP_PATH="/tmp/teamspeak_old"
-BACKUP_FILES=("licensekey.dat" "serverkey.dat" "ts3server.sqlitedb" "query_ip_blacklist.txt" "query_ip_whitelist.txt" "ts3db_mariadb.ini" "ts3db_mysql.ini" "ts3server.ini" "tsdns_settings.ini" "ts3server_startscript.sh" "tsdns_startscript.sh" ".bash_history" ".bash_logout" ".bashrc" ".profile")
+BACKUP_FILES=("licensekey.dat" "serverkey.dat" "ts3server.sqlitedb" "query_ip_blacklist.txt" "query_ip_whitelist.txt" "ts3db_mariadb.ini" "ts3db_mysql.ini" "ts3server.ini" "ts3server_startscript.sh" ".bash_history" ".bash_logout" ".bashrc" ".profile")
 BACKUP_DIR=("backup" "Backup" "backups" "logs" "files" ".ssh" ".config")
 MACHINE=`uname -m`
 
@@ -113,14 +115,9 @@ SERVER_START_MINIMAL() {
 }
 
 SERVER_START() {
-	yellowMessage "Start TS3 and TSDNS Server..."
+	yellowMessage "Start TS3 Server"
 
 	su "$TS_USER" -c "$TS_MASTER_PATH/ts3server_startscript.sh start" 2>&1 >/dev/null
-	sleep 2
-	if [ -f "$TS_DNS_PATH"/tsdns_startscript.sh ]; then
-		su "$TS_USER" -c "$TS_DNS_PATH/tsdns_startscript.sh start" 2>&1 >/dev/null
-	fi
-
 	sleep 2
 	greenMessage "Done"
 }
@@ -129,17 +126,10 @@ SERVER_STOP() {
 	yellowMessage "Stop Server for Update..."
 
 	su "$TS_USER" -c ""$TS_MASTER_PATH"/ts3server_startscript.sh stop" 2>&1 >/dev/null
-	if [ -f "$TS_DNS_PATH"/tsdns_startscript.sh ]; then
-		su "$TS_USER" -c ""$TS_DNS_PATH"/tsdns_startscript.sh stop" 2>&1 >/dev/null
-	fi
 	sleep 5
 	if [ $(ps -ef | grep ts3server | grep -v grep | awk '{print $2}' | sort | tail -n1) != "" ]; then
 		TS3_PID=$(ps -ef | grep ts3server | grep -v grep | awk '{print $2}' | sort | tail -n1)
 		kill -15 $TS3_PID
-	fi
-	if [ $(ps -ef | grep tsdnsserver | grep -v grep | awk '{print $2}' | sort | tail -n1) != "" ]; then
-		TS3_DNS_PID=$(ps -ef | grep tsdnsserver | grep -v grep | awk '{print $2}' | sort | tail -n1)
-		kill -15 $TS3_DNS_PID
 	fi
 	sleep 5
 	greenMessage "Done"
@@ -164,17 +154,17 @@ BACKUP() {
 		fi
 	done
 
-	if [ ! -d "$TMP_PATH"/tsdns ]; then
-		mkdir "$TMP_PATH"/tsdns
-	fi
-
 	for tmp_file in ${BACKUP_FILES[@]}; do
 		if [ -f "$TS_MASTER_PATH"/"$tmp_file" ]; then
 			cp "$TS_MASTER_PATH"/"$tmp_file" -R "$TMP_PATH"/ 2>&1 >/dev/null
-		elif [ -f "$TS_DNS_PATH"/"$tmp_file" ]; then
-			cp "$TS_DNS_PATH"/"$tmp_file" -R "$TMP_PATH"/tsdns/ 2>&1 >/dev/null
 		fi
 	done
+
+	if [ "$BACKUP_PATH" != "" ]; then
+		cd "$TMP_PATH"
+		tar cpvz ./ | split -b1024m - Teamspeak_Backup.$(date -I).tar.gz.split.
+		mv Teamspeak_Backup.*.tar.gz.split.* "$BACKUP_PATH"
+	fi
 
 	sleep 2
 	greenMessage "Done"
@@ -224,9 +214,6 @@ RESTORE() {
 		if [ -f "$TMP_PATH"/"$tmp_file" ]; then
 			rm -rf "$TS_MASTER_PATH"/"$tmp_file"
 			mv "$TMP_PATH"/"$tmp_file" "$TS_MASTER_PATH"/
-		elif [ -f "$TMP_PATH"/tsdns/"$tmp_file" ]; then
-			rm -rf "$TS_DNS_PATH"/"$tmp_file"
-			mv "$TMP_PATH"/tsdns/"$tmp_file" "$TS_DNS_PATH"/
 		fi
 	done
 
