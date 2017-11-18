@@ -161,9 +161,15 @@ BACKUP() {
 	done
 
 	if [ "$BACKUP_PATH" != "" ]; then
-		cd "$TMP_PATH"
-		tar cpvz ./ | split -b1024m - Teamspeak_Backup.$(date -I).tar.gz.split.
-		mv Teamspeak_Backup.*.tar.gz.split.* "$BACKUP_PATH"
+		DIR_SIZE=$(du -sh "$TMP_PATH"/)
+		cd "$TMP_PATH"/
+		if [ "$DIR_SIZE" >= "1G" ]; then
+			tar cpvz ./ | split -b1024m - Teamspeak_Backup.$(date -I).tar.gz.split.
+			mv Teamspeak_Backup.*.tar.gz.split.* "$BACKUP_PATH"
+		else
+			tar cfvz Teamspeak_Backup.$(date -I).tar.gz
+			mv Teamspeak_Backup.$(date -I).tar.gz "$BACKUP_PATH"
+		fi
 	fi
 
 	sleep 2
