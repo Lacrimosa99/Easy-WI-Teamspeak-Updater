@@ -132,9 +132,8 @@ SERVER_STOP() {
 
 	su "$TS_USER" -c ""$TS_MASTER_PATH"/ts3server_startscript.sh stop" 2>&1 >/dev/null
 	sleep 5
-	STATUS_CHECK=$(ps -ef | grep ts3server | grep -v grep | awk '{print $2}' | sort | tail -n1)
-	if [ "$STATUS_CHECK" != "" ]; then
-		TS3_PID=$(ps -ef | grep ts3server | grep -v grep | awk '{print $2}' | sort | tail -n1)
+	TS3_PID=$(ps -ef | grep ts3server | grep -v grep | awk '{print $2}' | sort | tail -n1)
+	if [ "$TS3_PID" != "" ]; then
 		kill -15 $TS3_PID
 	fi
 	sleep 5
@@ -221,6 +220,11 @@ DOWNLOAD() {
 
 RESTORE() {
 	yellowMessage "Restore TS3 Server Files..."
+
+	TS3_PID=$(ps -ef | grep ts3server | grep -v grep | awk '{print $2}' | sort | tail -n1)
+	if [ "$TS3_PID" != "" ]; then
+		kill -15 $TS3_PID
+	fi
 
 	for tmp_dir in ${BACKUP_DIR[@]}; do
 		if [ -d "$TMP_TS3_PATH"/"$tmp_dir" ]; then
