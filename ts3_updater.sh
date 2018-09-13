@@ -62,7 +62,7 @@ VERSION_CHECK() {
 	LATEST_SCRIPT_VERSION=$(wget -q --timeout=60 -O - https://api.github.com/repos/Lacrimosa99/Easy-WI-Teamspeak-Updater/releases/latest | grep -Po '(?<="tag_name": ")([0-9]\.[0-9])')
 
 	if [ "$LATEST_SCRIPT_VERSION" != "" ]; then
-		if [ $(`printf "${LATEST_SCRIPT_VERSION}\n${CURRENT_SCRIPT_VERSION}" | sort -V | tail -n 1`) != "$CURRENT_SCRIPT_VERSION" ]; then
+		if [ $(printf "${LATEST_SCRIPT_VERSION}\n${CURRENT_SCRIPT_VERSION}" | sort -V | tail -n 1) != "$CURRENT_SCRIPT_VERSION" ]; then
 			echo
 			redMessage "You are using a old TS3 Updater Script Version ${CURRENT_SCRIPT_VERSION}."
 			redMessage "Please Upgrade to Version ${LATEST_SCRIPT_VERSION} and retry."
@@ -88,9 +88,9 @@ VERSION_CHECK() {
 		echo "$MACHINE is not supported!"
 	fi
 
-	for LASTEST_TS3_VERSION in $(`curl -s "http://dl.4players.de/ts/releases/?C=M;O=D" | grep -Po '(?<=href=")[0-9]+(\.[0-9]+){2,3}(?=/")' | sort -Vr`); do
+	for LASTEST_TS3_VERSION in $(curl -s "http://dl.4players.de/ts/releases/?C=M;O=D" | grep -Po '(?<=href=")[0-9]+(\.[0-9]+){2,3}(?=/")' | sort -Vr); do
 		DOWNLOAD_URL_VERSION="http://dl.4players.de/ts/releases/$LASTEST_TS3_VERSION/teamspeak3-server_linux_$ARCH-$LASTEST_TS3_VERSION.tar.bz2"
-		STATUS=$(`curl -I $DOWNLOAD_URL_VERSION 2>&1 | grep "HTTP/" | awk '{print $2}'`)
+		STATUS=$(curl -I $DOWNLOAD_URL_VERSION 2>&1 | grep "HTTP/" | awk '{print $2}')
 
 		if [ "$STATUS" == "200" ]; then
 			DOWNLOAD_URL=$DOWNLOAD_URL_VERSION
