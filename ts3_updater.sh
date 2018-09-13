@@ -261,8 +261,8 @@ if [ "$TS_USER" != "" ]; then
 			yellowMessage "Please do not cancel!"
 			echo
 
-			CHECK_MARIADB=$(if [ -f "$TS_MASTER_PATH"/ts3db_mariadb.ini ]; then cat "$TS_MASTER_PATH"/ts3db_mariadb.ini | grep "username="; fi)
-			CHECK_MSQL=$(if [ -f "$TS_MASTER_PATH"/ts3db_mysql.ini ]; then cat "$TS_MASTER_PATH"/ts3db_mysql.ini | grep "username="; fi)
+			CHECK_MARIADB=$(if [ -f "$TS_MASTER_PATH"/ts3db_mariadb.ini ]; then grep "username=" "$TS_MASTER_PATH"/ts3db_mariadb.ini | sed 's/username=//'; fi)
+			CHECK_MSQL=$(if [ -f "$TS_MASTER_PATH"/ts3db_mysql.ini ]; then grep "username=" "$TS_MASTER_PATH"/ts3db_mysql.ini | sed 's/username=//'; fi)
 
 			if [ "$CHECK_MARIADB" != "" -o "$CHECK_MSQL" != "" ]; then
 				su - -c "ln -s $TS_MASTER_PATH/redist/libmariadb.so.2 $TS_MASTER_PATH/libmariadb.so.2" "$TS_USER"
