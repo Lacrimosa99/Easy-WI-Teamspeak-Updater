@@ -3,26 +3,59 @@
 # Debug Mode
 DEBUG="OFF"
 
-# Teamspeak3 User
-TS_USER=""
-
-# Teamspeak3 Group
-TS_GROUP=""
-
-# Teamspeak3 Path
-TS_MASTER_PATH="/home/$TS_USER"
+#    Author:     Ulrich Block <ulrich.block@easy-wi.com>,
+#                Alexander Doerwald <alexander.doerwald@easy-wi.com>
+#
+#    This file is part of Easy-WI.
+#
+#    Easy-WI is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    Easy-WI is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with Easy-WI.  If not, see <http://www.gnu.org/licenses/>.
+#
+#    Diese Datei ist Teil von Easy-WI.
+#
+#    Easy-WI ist Freie Software: Sie koennen es unter den Bedingungen
+#    der GNU General Public License, wie von der Free Software Foundation,
+#    Version 3 der Lizenz oder (nach Ihrer Wahl) jeder spaeteren
+#    veroeffentlichten Version, weiterverbreiten und/oder modifizieren.
+#
+#    Easy-WI wird in der Hoffnung, dass es nuetzlich sein wird, aber
+#    OHNE JEDE GEWAEHELEISTUNG, bereitgestellt; sogar ohne die implizite
+#    Gewaehrleistung der MARKTFAEHIGKEIT oder EIGNUNG FUER EINEN BESTIMMTEN ZWECK.
+#    Siehe die GNU General Public License fuer weitere Details.
+#
+#    Sie sollten eine Kopie der GNU General Public License zusammen mit diesem
+#    Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
 
 # Backup Path
-BACKUP_PATH=""
+BACKUP_PATH="your_Backup_path_here"
 
-####################
+##################################################
+##################################################
+##########                              ##########
+##########    !!! DO NOT CHANCE !!!     ##########
+##########                              ##########
+##################################################
+##################################################
 
 CURRENT_SCRIPT_VERSION="1.4"
-TMP_PATH="/tmp"
-TMP_TS3_PATH="$TMP_PATH/teamspeak_old"
-BACKUP_FILES=("licensekey.dat" "serverkey.dat" "ts3server.sqlitedb" "query_ip_blacklist.txt" "query_ip_whitelist.txt" "ts3db_mariadb.ini" "ts3db_mysql.ini" "ts3server.ini" "ts3server_startscript.sh" ".bash_history" ".bash_logout" ".bashrc" ".profile" ".ts3server_license_accepted")
+TMP_PATH="/tmp/teamspeak_backup"
+BACKUP_FILES=("licensekey.dat" "serverkey.dat" "ts3server.sqlitedb" "query_ip_blacklist.txt" "query_ip_whitelist.txt" "ts3db_mariadb.ini" "ts3db_mysql.ini" "ts3server.ini" "ts3server_startscript.sh" ".bash_history" ".bash_logout" ".bashrc" ".profile")
 BACKUP_DIR=("backup" "Backup" "backups" "logs" "files" ".ssh" ".config")
 MACHINE=`uname -m`
+TS_MASTER_PATH_TMP=`find /home -type f -name 'ts3server'`
+TS_USER=`ls -la "$TS_MASTER_PATH_TMP" | awk '{print $3}'`
+TS_GROUP=`ls -la "$TS_MASTER_PATH_TMP" | awk '{print $4}'`
+TS_MASTER_PATH=`echo "$TS_MASTER_PATH_TMP" | sed 's/\/ts3server//'`
 
 VERSION_CHECK() {
 	yellowMessage "Checking for the latest Updater Script"
@@ -55,10 +88,15 @@ VERSION_CHECK() {
 		echo "$MACHINE is not supported!"
 	fi
 
-	LASTEST_TS3_VERSION=$(curl -s https://teamspeak.com/en/downloads#server | grep teamspeak3-server_linux_$ARCH | head -n1 | grep -o [0-9].[0-9].[0-9][0-9].[0-9] | head -n1)
-	if [ "$LASTEST_TS3_VERSION" = "" ]; then
-		LASTEST_TS3_VERSION=$(curl -s https://teamspeak.com/en/downloads#server | grep teamspeak3-server_linux_$ARCH | head -n1 | grep -o [0-9].[0-9].[0-9] | head -n1)
-	fi
+	for LASTEST_TS3_VERSION in `curl -s "http://dl.4players.de/ts/releases/?C=M;O=D" | grep -Po '(?<=href=")[0-9]+(\.[0-9]+){2,3}(?=/")' | sort -Vr`; do
+		DOWNLOAD_URL_VERSION="http://dl.4players.de/ts/releases/$LASTEST_TS3_VERSION/teamspeak3-server_linux_$ARCH-$LASTEST_TS3_VERSION.tar.bz2"
+		STATUS=`curl -I $DOWNLOAD_URL_VERSION 2>&1 | grep "HTTP/" | awk '{print $2}'`
+
+		if [ "$STATUS" == "200" ]; then
+			DOWNLOAD_URL=$DOWNLOAD_URL_VERSION
+			break
+		fi
+	done
 
 	LOCAL_TS3_VERSION=$(if [ -f "$TS_MASTER_PATH"/version ]; then cat "$TS_MASTER_PATH"/version; fi)
 	if [ "$LASTEST_TS3_VERSION" != "" ]; then
@@ -72,7 +110,7 @@ VERSION_CHECK() {
 			FINISHED
 		fi
 	else
-		redMessage "Could not detect last TS3 Server Version!"
+		redMessage "Could not detect latest TS3 Server Version!"
 		FINISHED
 	fi
 }
@@ -103,18 +141,19 @@ SERVER_START_MINIMAL() {
 	CHECK_MSQL=$(if [ -f "$TS_MASTER_PATH"/ts3db_mysql.ini ]; then cat "$TS_MASTER_PATH"/ts3db_mysql.ini | grep "username="; fi)
 
 	if [ "$CHECK_MARIADB" != "" -o "$CHECK_MSQL" != "" ]; then
-		su "$TS_USER" -c "ln -s "$TS_MASTER_PATH"/redist/libmariadb.so.2 "$TS_MASTER_PATH"/libmariadb.so.2"
-		su "$TS_USER" -c "$TS_MASTER_PATH/ts3server_minimal_runscript.sh inifile=ts3server.ini 2>&1 | tee $TS_MASTER_PATH/logs/ts3server_minimal_start_$(date +%d-%m-%Y).log" &
+		su - -c "ln -s "$TS_MASTER_PATH"/redist/libmariadb.so.2 "$TS_MASTER_PATH"/libmariadb.so.2" "$TS_USER"
+		su - -c "$TS_MASTER_PATH/ts3server_minimal_runscript.sh inifile=ts3server.ini 2>&1 | tee $TS_MASTER_PATH/logs/ts3server_minimal_start_$(date +%d-%m-%Y).log" "$TS_USER" &
 	else
-		su "$TS_USER" -c "$TS_MASTER_PATH/ts3server_minimal_runscript.sh | tee $TS_MASTER_PATH/logs/ts3server_minimal_start_$(date +%d-%m-%Y).log" &
+		su - -c "$TS_MASTER_PATH/ts3server_minimal_runscript.sh | tee $TS_MASTER_PATH/logs/ts3server_minimal_start_$(date +%d-%m-%Y).log" "$TS_USER" &
 	fi
 
 	sleep 80
-	TS3_PID=$(ps -ef | grep ts3server | grep -v grep | awk '{print $2}' | sort | tail -n1)
-	kill -15 $TS3_PID
-	sleep 10
+	ps -u "$TS_USER" | grep ts3server | awk '{print $1}' | while read PID; do
+		kill "$PID"
+	done
+	sleep 5
 	greenMessage "Done"
-	sleep 20
+	sleep 5
 	echo
 	SERVER_START
 }
@@ -122,7 +161,7 @@ SERVER_START_MINIMAL() {
 SERVER_START() {
 	yellowMessage "Start TS3 Server"
 
-	su "$TS_USER" -c "$TS_MASTER_PATH/ts3server_startscript.sh start" 2>&1 >/dev/null
+	su - -c "$TS_MASTER_PATH/ts3server_startscript.sh start" "$TS_USER" 2>&1 >/dev/null
 	sleep 2
 	greenMessage "Done"
 }
@@ -130,12 +169,11 @@ SERVER_START() {
 SERVER_STOP() {
 	yellowMessage "Stop Server for Update..."
 
-	su "$TS_USER" -c ""$TS_MASTER_PATH"/ts3server_startscript.sh stop" 2>&1 >/dev/null
-	sleep 5
-	TS3_PID=$(ps -ef | grep ts3server | grep -v grep | awk '{print $2}' | sort | tail -n1)
-	if [ "$TS3_PID" != "" ]; then
-		kill -15 $TS3_PID
-	fi
+	su - -c "$TS_MASTER_PATH/ts3server_startscript.sh stop" "$TS_USER" 2>&1 >/dev/null
+	sleep 10
+	ps -u "$TS_USER" | grep ts3server | awk '{print $1}' | while read PID; do
+		kill $PID
+	done
 	sleep 5
 	greenMessage "Done"
 	sleep 3
@@ -146,44 +184,43 @@ SERVER_STOP() {
 BACKUP() {
 	yellowMessage "Make Backup..."
 
-	if [ ! -d "$TMP_TS3_PATH" ]; then
-		mkdir "$TMP_TS3_PATH"
+	if [ ! -d "$TMP_PATH" ]; then
+		mkdir "$TMP_PATH"
 	else
-		rm -rf "$TMP_TS3_PATH"
-		mkdir "$TMP_TS3_PATH"
+		rm -rf "$TMP_PATH"
+		mkdir "$TMP_PATH"
 	fi
 
 	for tmp_dir in ${BACKUP_DIR[@]}; do
 		if [ -d "$TS_MASTER_PATH"/"$tmp_dir" ]; then
-			cp "$TS_MASTER_PATH"/"$tmp_dir" -R "$TMP_TS3_PATH" 2>&1 >/dev/null
+			cp "$TS_MASTER_PATH"/"$tmp_dir" -R "$TMP_PATH" 2>&1 >/dev/null
 		fi
 	done
 
 	for tmp_file in ${BACKUP_FILES[@]}; do
 		if [ -f "$TS_MASTER_PATH"/"$tmp_file" ]; then
-			cp "$TS_MASTER_PATH"/"$tmp_file" -R "$TMP_TS3_PATH"/ 2>&1 >/dev/null
+			cp "$TS_MASTER_PATH"/"$tmp_file" -R "$TMP_PATH"/ 2>&1 >/dev/null
 		fi
 	done
 
-	if [ "$BACKUP_PATH" != "" ]; then
-		DIR_SIZE=$(du --max-depth=0 "$TMP_TS3_PATH"/ | awk '{ print $1 }')
-		cd "$TMP_PATH"/
-		if [ "$DIR_SIZE" -ge "999000000" ]; then
-			tar cpvz ./teamspeak_old | split -b1000m - Teamspeak_Backup.$(date -I).tar.gz.split.
-			if [ ! -f Teamspeak_Backup.$(date -I).tar.gz.split.* ]; then
-				redMessage "Backup failed!"
-				exit 0
-			else
-				mv Teamspeak_Backup.*.tar.gz.split.* "$BACKUP_PATH"
-			fi
+	cd /tmp
+	DIR_SIZE=$(du --max-depth=0 ./teamspeak_backup | awk '{ print $1 }')
+
+	if [ "$DIR_SIZE" -ge "999000000" ]; then
+		tar cpvz ./teamspeak_backup | split -b1024m - Teamspeak_Backup.$(date -I).tar.gz.split.
+
+		if [ "$BACKUP_PATH" != "" -a -d "$BACKUP_PATH" ]; then
+			mv Teamspeak_Backup.*.tar.gz.split.* "$BACKUP_PATH"
 		else
-			tar cfvz Teamspeak_Backup.$(date -I).tar.gz ./teamspeak_old
-			if [ ! -f Teamspeak_Backup.$(date -I).tar.gz ]; then
-				redMessage "Backup failed!"
-				exit 0
-			else
-				mv Teamspeak_Backup.$(date -I).tar.gz "$BACKUP_PATH"
-			fi
+			mv Teamspeak_Backup.*.tar.gz.split.* /home
+		fi
+	else
+		tar cfvz Teamspeak_Backup.$(date -I).tar.gz ./teamspeak_backup
+
+		if [ "$BACKUP_PATH" != "" -a -d "$BACKUP_PATH" ]; then
+			mv Teamspeak_Backup.$(date -I).tar.gz "$BACKUP_PATH"
+		else
+			mv Teamspeak_Backup.$(date -I).tar.gz /home
 		fi
 	fi
 
@@ -197,8 +234,6 @@ BACKUP() {
 DOWNLOAD() {
 	yellowMessage "Downloading TS3 Server Files..."
 	echo
-
-	DOWNLOAD_URL="http://dl.4players.de/ts/releases/$LASTEST_TS3_VERSION/teamspeak3-server_linux_$ARCH-$LASTEST_TS3_VERSION.tar.bz2"
 	wget --timeout=60 -P /tmp/ "$DOWNLOAD_URL"
 
 	if [ -f /tmp/teamspeak3-server_linux_"$ARCH"-"$LASTEST_TS3_VERSION".tar.bz2 ]; then
@@ -221,14 +256,9 @@ DOWNLOAD() {
 RESTORE() {
 	yellowMessage "Restore TS3 Server Files..."
 
-	TS3_PID=$(ps -ef | grep ts3server | grep -v grep | awk '{print $2}' | sort | tail -n1)
-	if [ "$TS3_PID" != "" ]; then
-		kill -15 $TS3_PID
-	fi
-
 	for tmp_dir in ${BACKUP_DIR[@]}; do
-		if [ -d "$TMP_TS3_PATH"/"$tmp_dir" ]; then
-			cp "$TMP_TS3_PATH"/"$tmp_dir" -R "$TS_MASTER_PATH"/
+		if [ -d "$TMP_PATH"/"$tmp_dir" ]; then
+			cp "$TMP_PATH"/"$tmp_dir" -R "$TS_MASTER_PATH"/
 		fi
 	done
 
@@ -237,22 +267,17 @@ RESTORE() {
 	fi
 
 	for tmp_file in ${BACKUP_FILES[@]}; do
-		if [ -f "$TMP_TS3_PATH"/"$tmp_file" ]; then
+		if [ -f "$TMP_PATH"/"$tmp_file" ]; then
 			rm -rf "$TS_MASTER_PATH"/"$tmp_file"
-			mv "$TMP_TS3_PATH"/"$tmp_file" "$TS_MASTER_PATH"/
+			mv "$TMP_PATH"/"$tmp_file" "$TS_MASTER_PATH"/
 		fi
 	done
-
-	#License accepted
-	if [ ! -f "$TS_MASTER_PATH"/.ts3server_license_accepted ]; then
-		echo "" > "$TS_MASTER_PATH"/.ts3server_license_accepted
-	fi
 
 	chown -cR "$TS_USER":"$TS_GROUP" "$TS_MASTER_PATH" 2>&1 >/dev/null
 
 	rm -rf /tmp/teamspeak3-server_linux_"$ARCH"-"$LASTEST_TS3_VERSION".tar.bz2
 	rm -rf /tmp/teamspeak3-server_linux_"$ARCH"
-	rm -rf "$TMP_TS3_PATH"
+	rm -rf "$TMP_PATH"
 
 	sleep 3
 	greenMessage "Done"
@@ -261,26 +286,11 @@ RESTORE() {
 	SERVER_START_MINIMAL
 }
 
-HEADER() {
-	echo
-	cyanMessage "###################################################"
-	cyanMessage "####         EASY-WI - www.Easy-WI.com         ####"
-	cyanMessage "####            Teamspeak 3 Updater            ####"
-	cyanMessage "####                Version: $CURRENT_SCRIPT_VERSION               ####"
-	cyanMessage "####                    by                     ####"
-	cyanMessage "####                Lacrimosa99                ####"
-	cyanMessage "####         www.Devil-Hunter-Clan.de          ####"
-	cyanMessage "####      www.Devil-Hunter-Multigaming.de      ####"
-	cyanMessage "###################################################"
-	echo
-}
-
 FINISHED() {
 	sleep 2
 	echo
 	echo
 	yellowMessage "Thanks for using this script and have a nice Day."
-	HEADER
 	echo
 	if [ "$DEBUG" = "ON" ]; then
 		set +x
@@ -310,7 +320,6 @@ RUN() {
 	fi
 	clear
 	echo
-	HEADER
 	VERSION_CHECK
 	FINISHED
 }
