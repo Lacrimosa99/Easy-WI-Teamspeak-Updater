@@ -99,7 +99,7 @@ if [ "$TS_MASTER_PATH_TMP" == "" ]; then
 fi
 
 yellowMessage "Checking for the latest Updater Script"
-LATEST_SCRIPT_VERSION=$(wget -q --timeout=60 -O - https://api.github.com/repos/Lacrimosa99/Easy-WI-Teamspeak-Updater/releases/latest | grep -Po '(?<="tag_name": ")([0-9]\.[0-9])')
+LATEST_SCRIPT_VERSION=$(curl -q https://github.com/easy-wi/server/blob/master/ts3_updater.sh | egrep "CURRENT_SCRIPT_VERSION" | grep -Po '([0-9]\.[0-9])')
 
 if [ "$LATEST_SCRIPT_VERSION" != "" ]; then
 	if [ $(printf "${LATEST_SCRIPT_VERSION}\n${CURRENT_SCRIPT_VERSION}" | sort -V | tail -n 1) != "$CURRENT_SCRIPT_VERSION" ]; then
